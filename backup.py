@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
-from pydoc import cli
 from shutil import rmtree, copytree,  ignore_patterns
 from zipfile import ZipFile
 from datetime import datetime
 from pathlib import Path
 import os
-import sys
-import re
 import logging
 import click
 from threading import Thread
@@ -14,9 +11,10 @@ from progress.spinner import Spinner
 
 
 @click.command()
+@click.option('--v', is_flag=False)
 @click.argument('source', required=True)
 @click.argument('dest', required=True)
-def init_app(source, dest):
+def init_app(source, dest, v):
     """ Use esse script para fazer backup do seu sistema linux.
     O script recebe dois respectivos argumentos. O primeiro é o caminho do diretório escolhido para backup.
     O segundo é o caminho do destinho do backup que será feito.
@@ -24,11 +22,11 @@ def init_app(source, dest):
 
     date = datetime.now()
     backup_folder = str(f'/backup_{date.strftime("%d_%B_%Y")}')
+    backup_path = dest + backup_folder
+    zip_dest = dest + f'/backup_{date.strftime("%d_%B_%Y.zip")}'
+    directory = Path(backup_path)
     logging.basicConfig(filename='backup.log',
                         level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
-
-    backup_path = dest + backup_folder
-    directory = Path(backup_path)
 
     if not os.path.exists(source):
         logging.warning('Caminho para backup não encontrado')
@@ -48,8 +46,10 @@ def init_app(source, dest):
             copytree(source, backup_path,
                      ignore=ignore_patterns('node_modules', '.git', 'venv', 'env', '.env', '.venv'))
 
-            with ZipFile(dest + f'/backup_{date.strftime("%d_%B_%Y.zip")}', 'w') as zip:
+            with ZipFile(zip_dest, 'w') as zip:
                 for file in directory.rglob("*"):
+                    if v:
+                        click.echo(f'Copiando {file} para {zip_dest}')
                     zip.write(file, arcname=file.relative_to(directory))
                 logging.info('Backup concluido')
         except Exception as e:
@@ -58,14 +58,15 @@ def init_app(source, dest):
     backup_thread = Thread(target=backup)
     backup_thread.start()
 
-    spinner = Spinner('Realizando backup ')
-    while backup_thread.is_alive():
+    if not v:
+        spinner = Spinner('Realizando backup ')
+        while backup_thread.is_alive():
 
-        spinner.next()
+            spinner.next()
 
-    rmtree(backup_path, ignore_errors=True)
+        rmtree(backup_path, ignore_errors=True)
 
-    click.echo('\nBackup concluido.')
+        click.echo('\nBackup concluido.')
 
 
 init_app()
