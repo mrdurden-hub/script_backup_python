@@ -1,57 +1,43 @@
 #!/usr/bin/env python3
-from pydoc import cli
 from shutil import rmtree, copytree,  ignore_patterns
 from zipfile import ZipFile
 from datetime import datetime
 from pathlib import Path
-import os
-import sys
-import re
-import logging
-import click
 from threading import Thread
 from progress.spinner import Spinner
+import os
+import logging
+import click
 
 
+@click.command()
+@click.option('-v', '--verbose', type=click.BOOL, is_flag=False, help='Exibe os arquivos que estão sendo copiados.')
+@click.option('-ig', '--ignore', multiple=True, help='ignora diretórios expecificos passados como parâmetro.')
 @click.argument('source', required=True)
 @click.argument('dest', required=True)
-@click.command()
-def init_app(source, dest):
+def init_app(source, dest, verbose, ignore):
     """ Use esse script para fazer backup do seu sistema linux.
     O script recebe dois respectivos argumentos. O primeiro é o caminho do diretório escolhido para backup.
     O segundo é o caminho do destinho do backup que será feito.
     Ao executar o script será ignorado as pastas: 'node_modules', '.git', 'venv', 'env', '.env', '.venv"""
 
-    spinner = Spinner('Realizando backup ')
     date = datetime.now()
-    args = sys.argv
     backup_folder = str(f'/backup_{date.strftime("%d_%B_%Y")}')
+    backup_path = dest + backup_folder
+    zip_dest = dest + f'/backup_{date.strftime("%d_%B_%Y.zip")}'
+    directory = Path(backup_path)
+    ignore_folders = ['node_modules', '.git', 'venv', 'env', '.env', '.venv']
     logging.basicConfig(filename='backup.log',
                         level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
-    if args:
-        del(args[0])
-        if len(args) == 0 or len(args) == 1 or len(args) > 2:
-            logging.warning('Você precisa passar 2 parâmetros')
-            click.echo(
-                'Você precisa indicar o caminho de backup e o caminho de destinho.')
-            return
+    if ignore:
+        [ignore_folders.append(v) for v in ignore]
 
-        for arg in args:
-            if not re.search('/', arg):
-                logging.warning('Você passou argumentos inválido')
-                click.echo('Você passou argumentos inválido')
-                return
-
-        src_path = args[0]
-        backup_path = args[1] + backup_folder
-        directory = Path(backup_path)
-
-    if not os.path.exists(src_path):
+    if not os.path.exists(source):
         logging.warning('Caminho para backup não encontrado')
         click.echo('Caminho para backup não encontrado')
         return
 
-    if not os.path.exists(args[1]):
+    if not os.path.exists(dest):
         logging.warning('Caminho de destinho não encontrado')
         click.echo('Caminho de destinho não encontrado')
         return
@@ -61,12 +47,15 @@ def init_app(source, dest):
 
     def backup():
         try:
-            copytree(src_path, backup_path,
-                     ignore=ignore_patterns('node_modules', '.git', 'venv', 'env', '.env', '.venv'))
+            copytree(source, backup_path,
+                     ignore=ignore_patterns(*ignore_folders))
 
-            with ZipFile(args[1] + f'/backup_{date.strftime("%d_%B_%Y.zip")}', 'w') as zip:
+            with ZipFile(zip_dest, 'w') as zip:
                 for file in directory.rglob("*"):
+                    if verbose:
+                        click.echo(f'Copiando {file} para {zip_dest}')
                     zip.write(file, arcname=file.relative_to(directory))
+                rmtree(backup_path, ignore_errors=True)
                 logging.info('Backup concluido')
         except Exception as e:
             logging.warning(e)
@@ -74,13 +63,11 @@ def init_app(source, dest):
     backup_thread = Thread(target=backup)
     backup_thread.start()
 
-    while backup_thread.is_alive():
+    if not verbose:
+        spinner = Spinner('Realizando backup ')
+        while backup_thread.is_alive():
 
-        spinner.next()
-
-    rmtree(backup_path, ignore_errors=True)
-
-    click.echo('\nBackup concluido.')
+            spinner.next()
 
 
 init_app()
