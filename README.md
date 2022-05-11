@@ -51,3 +51,50 @@ python backup.py /home/user/diretorio_backup ~/destinho
 ```
 
 _Ao executar o comando acima o script vai fazer backup de tudo que estiver dentro de `/home/user/diretorio_backup` e gerar um arquivo .zip em `~/destinho`_.
+
+## Usando opções
+
+_O script pode receber duas opções como parâmetro:_
+
+| opç            | Descrição                                                                           | Tipo    |
+| -------------- | ----------------------------------------------------------------------------------- | ------- |
+| -v / --verbose | Exibe os arquivos que estão sendo feito o backup. Por padrão é definido como false. | Boolean |
+| -ig / --ignore | Recebe como parâmetro os diretório que serão ignorados.                             | String  |
+
+## Exemplos
+
+_Nesse exemplo vou fazer um backup usando as duas opções que descrevi acima._
+
+```
+./backup.py /home/user/backup_folder ~/dest -v true -ig node_modules
+```
+
+_Primeiro executei o arquivo `./backup.py`, depois passei o primeiro parâmetro que é a pasta escolhida para o backup `/home/user/backup_folder`, em seguida passei o segundo parâmetro que é o destino do backup (o caminho onde será criado o backup) `~/dest` e depois usei as duas opções. Primeiro estou usando a opção`-v` para `true` indicando que quero ver os arquivos sendo copiados e depois estou utilizando a opção `-ig` para indicar quais diretórios eu quero que o script ignore. Nesse exemplo usei `node_modules` como você viu acima, mas você pode passar qualquer outro valor, sem limites de quantidades._
+<br />
+_Você também pode usar a opção `--help` no terminal caso ainda tenha alguma dúvida._
+
+_Voce terá uma saída como essa:_
+
+```
+(.venv) ➜  script_backup_python git:(main) ✗ ./backup.py --h
+elp
+Usage: backup.py [OPTIONS] SOURCE DEST
+
+  Use esse script para fazer backup do seu sistema linux.
+  O script recebe dois respectivos argumentos. O primeiro
+  é o caminho do diretório escolhido para backup. O
+  segundo é o caminho do destinho do backup que será
+  feito. Ao executar o script será ignorado as pastas:
+  'node_modules', '.git', 'venv', 'env', '.env', '.venv
+
+Options:
+  -v, --verbose BOOLEAN  Exibe os arquivos que estão sendo
+                         copiados.
+  -ig, --ignore TEXT     ignora diretórios expecificos
+                         passados como parâmetro.
+  --help                 Show this message and exit.
+```
+
+### Autor
+
+- [mrdurden-hub](https://github.com/mrdurden-hub)
