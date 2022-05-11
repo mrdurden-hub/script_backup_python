@@ -38,8 +38,16 @@ _Para ativar o ambiente virtual use os seguintes comandos:_
 poetry shell
 ```
 
-_Agora é só executar o script com python:_
+_Agora é preciso instalar as dependencias:_
 
+```sh
+poetry install
 ```
-python backup.py
+
+_Agora é só executar o script com python e passar os argumentos:_
+
+```sh
+python backup.py /home/user/diretorio_backup ~/destinho
 ```
+
+_Ao executar o comando acima o script vai fazer backup de tudo que estiver dentro de `/home/user/diretorio_backup` e gerar um arquivo .zip em `~/destinho`_.

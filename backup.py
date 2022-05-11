@@ -3,18 +3,19 @@ from shutil import rmtree, copytree,  ignore_patterns
 from zipfile import ZipFile
 from datetime import datetime
 from pathlib import Path
+from threading import Thread
+from progress.spinner import Spinner
 import os
 import logging
 import click
-from threading import Thread
-from progress.spinner import Spinner
 
 
 @click.command()
-@click.option('--v', is_flag=False)
+@click.option('-v', '--verbose', type=click.BOOL, is_flag=False, help='Exibe os arquivos que estão sendo copiados.')
+@click.option('-ig', '--ignore', multiple=True, help='ignora diretórios expecificos passados como parâmetro.')
 @click.argument('source', required=True)
 @click.argument('dest', required=True)
-def init_app(source, dest, v):
+def init_app(source, dest, verbose, ignore):
     """ Use esse script para fazer backup do seu sistema linux.
     O script recebe dois respectivos argumentos. O primeiro é o caminho do diretório escolhido para backup.
     O segundo é o caminho do destinho do backup que será feito.
@@ -25,8 +26,11 @@ def init_app(source, dest, v):
     backup_path = dest + backup_folder
     zip_dest = dest + f'/backup_{date.strftime("%d_%B_%Y.zip")}'
     directory = Path(backup_path)
+    ignore_folders = ['node_modules', '.git', 'venv', 'env', '.env', '.venv']
     logging.basicConfig(filename='backup.log',
                         level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+    if ignore:
+        [ignore_folders.append(v) for v in ignore]
 
     if not os.path.exists(source):
         logging.warning('Caminho para backup não encontrado')
@@ -44,13 +48,14 @@ def init_app(source, dest, v):
     def backup():
         try:
             copytree(source, backup_path,
-                     ignore=ignore_patterns('node_modules', '.git', 'venv', 'env', '.env', '.venv'))
+                     ignore=ignore_patterns(*ignore_folders))
 
             with ZipFile(zip_dest, 'w') as zip:
                 for file in directory.rglob("*"):
-                    if v:
+                    if verbose:
                         click.echo(f'Copiando {file} para {zip_dest}')
                     zip.write(file, arcname=file.relative_to(directory))
+                rmtree(backup_path, ignore_errors=True)
                 logging.info('Backup concluido')
         except Exception as e:
             logging.warning(e)
@@ -58,15 +63,11 @@ def init_app(source, dest, v):
     backup_thread = Thread(target=backup)
     backup_thread.start()
 
-    if not v:
+    if not verbose:
         spinner = Spinner('Realizando backup ')
         while backup_thread.is_alive():
 
             spinner.next()
-
-        rmtree(backup_path, ignore_errors=True)
-
-        click.echo('\nBackup concluido.')
 
 
 init_app()
